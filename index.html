@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 HR Pool Standings</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#090f1e;--surface:#111827;--surface2:#182035;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#eef2ff;--muted:#6b7a99;
+  --accent:#3b82f6;--accent2:#93c5fd;
+  --gold:#f59e0b;--gold2:#fcd34d;--silver:#94a3b8;--bronze:#cd7f32;
+  --green:#10b981;--red:#f87171;
+}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:4rem}
+
+.hero{position:relative;z-index:1;background:linear-gradient(160deg,#0d1b3e 0%,#09142a 50%,var(--bg) 100%);border-bottom:1px solid var(--border2);padding:2.5rem 1.5rem 2rem;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-80px;right:-80px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.10) 0%,transparent 70%);pointer-events:none}
+.hero-inner{max-width:960px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.2rem,5vw,3.8rem);letter-spacing:2px;line-height:1;color:#fff}
+.hero-title span{color:var(--gold)}
+.hero-sub{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:.3rem}
+.hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:.5rem}
+
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;border-radius:4px}
+.badge-idle{background:rgba(107,122,153,.15);color:var(--muted);border:1px solid rgba(107,122,153,.25)}
+.badge-loading{background:rgba(59,130,246,.15);color:var(--accent2);border:1px solid rgba(59,130,246,.3)}
+.badge-live{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.badge-error{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.last-upd{font-size:.76rem;color:var(--muted)}
+
+.btn{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 20px;border-radius:7px;border:1px solid var(--border2);background:none;color:var(--muted);cursor:pointer;transition:all .15s}
+.btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.main{max-width:960px;margin:0 auto;padding:2rem 1rem}
+
+.error-box{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#fca5a5;font-size:.82rem;padding:.75rem 1rem;border-radius:8px;margin-bottom:1.25rem;display:none;line-height:1.5}
+
+.summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.75rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem}
+.stat-label{font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--text);line-height:1}
+.stat-sub{font-size:.75rem;color:var(--muted);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.tabs{display:flex;border-bottom:1px solid var(--border2);margin-bottom:1.5rem}
+.tab-btn{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.55rem 1.25rem .65rem;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+thead th{font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.5rem .75rem;border-bottom:1px solid var(--border2);text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+tbody tr:hover{background:var(--surface2)}
+tbody tr.r1{background:rgba(245,158,11,.06)}
+tbody tr.r2{background:rgba(148,163,184,.04)}
+tbody tr.r3{background:rgba(205,127,50,.04)}
+td{padding:.7rem .75rem;vertical-align:middle}
+
+.rank{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;line-height:1;width:32px;display:block;text-align:center}
+.gold{color:var(--gold)}.silver{color:var(--silver)}.bronze{color:var(--bronze)}.dim{color:var(--muted);font-size:1rem}
+.pname{font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:.4rem}
+
+.score{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;text-align:right;line-height:1}
+.score small{font-family:'Barlow',sans-serif;font-size:.68rem;color:var(--muted);display:block}
+.bar-cell{width:130px}
+.bar-bg{height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .8s ease;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.bar-fill.g{background:linear-gradient(90deg,#d97706,var(--gold2))}
+.preview{font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.hl{color:var(--accent2)}
+
+/* expand */
+.exp-row{display:none}
+.exp-row.open{display:table-row}
+.exp-row td{background:var(--surface2);border-bottom:1px solid var(--border2);padding:0}
+.exp-inner{padding:1rem 1.5rem}
+.exp-label{font-family:'Barlow Condensed',sans-serif;font-size:.67rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.4rem}
+.chip{display:flex;align-items:center;justify-content:space-between;padding:.35rem .65rem;border-radius:7px;border:1px solid var(--border);background:var(--surface);font-size:.8rem}
+.chip.on{border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.07)}
+.chip-name{font-weight:500;color:var(--muted)}
+.chip.on .chip-name{color:var(--accent2)}
+.chip-hr{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--muted)}
+.chip.on .chip-hr{color:var(--gold2)}
+.chip-tag{font-size:.57rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:1px 4px;border-radius:3px;margin-left:4px}
+.tag-on{background:rgba(245,158,11,.14);color:var(--gold2)}
+.tag-off{background:rgba(107,122,153,.12);color:var(--muted)}
+
+/* players tab */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.7rem}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;display:flex;align-items:center;justify-content:space-between}
+.pcard-name{font-weight:600;font-size:.86rem}
+.pcard-own{font-size:.72rem;color:var(--muted)}
+.pcard-hr{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);line-height:1}
+
+/* loading overlay */
+.overlay{position:fixed;inset:0;background:rgba(9,15,30,.88);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.overlay.hidden{display:none}
+.obox{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:2.5rem 3rem;text-align:center;max-width:360px;width:90%}
+.obox h3{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:1px;color:#fff;margin-bottom:.25rem}
+.obox h3 span{color:var(--gold)}
+.obox-sub{font-size:.82rem;color:var(--muted);margin-bottom:1.5rem}
+.obar-bg{height:6px;background:var(--border2);border-radius:3px;overflow:hidden;margin-bottom:.75rem}
+.obar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;width:0%;transition:width .4s ease}
+.obox-status{font-size:.8rem;color:var(--muted)}
+
+@media(max-width:580px){.bar-cell,.preview{display:none}}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="obox">
+    <h3>Loading <span>HR Stats</span></h3>
+    <div class="obox-sub">Fetching live 2026 MLB home run totals...</div>
+    <div class="obar-bg"><div class="obar-fill" id="obar"></div></div>
+    <div class="obox-status" id="ostatus">Connecting to MLB Stats API...</div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-title">2026 HR Pool <span>Standings</span></div>
+      <div class="hero-sub">Draft Pool &middot; Top 8 of 10 Count &middot; Full Season</div>
+    </div>
+    <div class="hero-right">
+      <div class="badge badge-idle" id="badge">Not loaded</div>
+      <div class="last-upd" id="last-upd"></div>
+      <button class="btn" id="refresh-btn" onclick="loadStats()">&#8635; Refresh Stats</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="error-box" id="err"></div>
+
+  <div class="summary-bar">
+    <div class="stat-card"><div class="stat-label">Participants</div><div class="stat-val">26</div><div class="stat-sub">pool entries</div></div>
+    <div class="stat-card"><div class="stat-label">Leader</div><div class="stat-val" id="s-score">—</div><div class="stat-sub" id="s-name">load stats to see</div></div>
+    <div class="stat-card"><div class="stat-label">Top HR Hitter</div><div class="stat-val" id="s-hr">—</div><div class="stat-sub" id="s-player">load stats to see</div></div>
+    <div class="stat-card"><div class="stat-label">Players Tracked</div><div class="stat-val">64</div><div class="stat-sub">unique in pool</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('standings')">Pool Standings</button>
+    <button class="tab-btn" onclick="switchTab('players')">Player HRs</button>
+  </div>
+
+  <div id="tab-standings" class="tab-panel active">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:36px">#</th>
+          <th>Participant</th>
+          <th style="text-align:right">Score</th>
+          <th class="bar-cell"></th>
+          <th>Top players</th>
+        </tr></thead>
+        <tbody id="tbody">
+          <tr><td colspan="5" style="padding:3rem;text-align:center;color:var(--muted)">Stats loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Click any row to see full roster. Blue = counting toward score (top 8 HRs).</div>
+  </div>
+
+  <div id="tab-players" class="tab-panel">
+    <div class="pgrid" id="pgrid">
+      <div style="color:var(--muted);font-size:.9rem;padding:1rem 0">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const POOL = [
+  {name:"Rob Hackett 1",paid:false,players:["Pete Alonso","Elly De La Cruz","Roman Anthony","Corey Seager","Vladimir Guerrero Jr.","Fernando Tatis Jr.","Bobby Witt Jr.","Jake Burger","Jorge Soler","Gunnar Henderson"]},
+  {name:"Rob Hackett 2",paid:false,players:["Coby Mayo","Roman Anthony","Jackson Merrill","Gunnar Henderson","Daylen Lile","Cam Smith","Luis Robert Jr.","Dominic Canzone","Kyle Schwarber","Aaron Judge"]},
+  {name:"TJ Gorman",paid:true,players:["Julio Rodríguez","Francisco Lindor","Bobby Witt Jr.","Vladimir Guerrero Jr.","Elly De La Cruz","Josh Naylor","Bo Bichette","Nolan Gorman","Christopher Morel","Jake Cronenworth"]},
+  {name:"Shane Doherty",paid:true,players:["Gunnar Henderson","Aaron Judge","Tyler Soderstrom","José Ramírez","Ronald Acuña Jr.","Jorge Soler","Roman Anthony","Dylan Crews","Oneil Cruz","Tyler O'Neill"]},
+  {name:"Austin / Matt",paid:false,players:["Spencer Torkelson","Fernando Tatis Jr.","Freddie Freeman","Vladimir Guerrero Jr.","Ronald Acuña Jr.","Oneil Cruz","Gavin Sheets","Luis Arráez","Gunnar Henderson","Austin Riley"]},
+  {name:"Sam Doran",paid:false,players:["Shohei Ohtani","Roman Anthony","Ronald Acuña Jr.","Dylan Crews","Trea Turner","Elly De La Cruz","Coby Mayo","Mike Trout","Gunnar Henderson","Oneil Cruz"]},
+  {name:"Bob Wallum",paid:false,players:["Gunnar Henderson","Aaron Judge","Roman Anthony","Andrew Vaughn","Austin Riley","Ezequiel Tovar","Ronald Acuña Jr.","Bobby Witt Jr.","Ketel Marte","Jackson Merrill"]},
+  {name:"Steven Lembo",paid:false,players:["Aaron Judge","Nick Kurtz","Vladimir Guerrero Jr.","Ronald Acuña Jr.","Noelvi Marté","Jorge Soler","Francisco Alvarez","Tyler O'Neill","Roman Anthony","Gunnar Henderson"]},
+  {name:"Brian Jackson",paid:false,players:["Aaron Judge","Pete Alonso","Ronald Acuña Jr.","Bo Bichette","Gunnar Henderson","Austin Riley","Luis Robert Jr.","Francisco Alvarez","Daylen Lile","Roman Anthony"]},
+  {name:"Michael Hackett 1",paid:true,players:["Kyle Tucker","Ronald Acuña Jr.","Colson Montgomery","Roman Anthony","Daulton Varsho","Gunnar Henderson","Matt McLain","Coby Mayo","Nick Kurtz","Pete Crow-Armstrong"]},
+  {name:"Michael Hackett 2",paid:true,players:["Aaron Judge","Roman Anthony","Tyler O'Neill","Ezequiel Tovar","Francisco Alvarez","Daulton Varsho","Iván Herrera","Giancarlo Stanton","Brent Rooker","Ronald Acuña Jr."]},
+  {name:"Chris Colasurdo",paid:false,players:["Ronald Acuña Jr.","Teoscar Hernández","Spencer Torkelson","Roman Anthony","Josh Lowe","Christopher Morel","Josh Naylor","Adolis García","Pete Alonso","Jackson Chourio"]},
+  {name:"Brian Baker",paid:true,players:["Roman Anthony","James Wood","Vladimir Guerrero Jr.","Ben Rice","Gunnar Henderson","Oneil Cruz","Fernando Tatis Jr.","Wyatt Langford","Ronald Acuña Jr.","Jeff McNeil"]},
+  {name:"Rich R",paid:true,players:["Kyle Schwarber","Bobby Witt Jr.","Ronald Acuña Jr.","Mookie Betts","Gunnar Henderson","Jarren Duran","Austin Riley","Jonathan Aranda","Ezequiel Tovar","Roman Anthony"]},
+  {name:"Dave Hackett",paid:true,players:["Shohei Ohtani","Juan Soto","Cody Bellinger","Alex Bregman","Austin Riley","Tyler O'Neill","Adley Rutschman","Roman Anthony","Jonathan India","Joc Pederson"]},
+  {name:"Brian Boruch",paid:false,players:["Oneil Cruz","Roman Anthony","Aaron Judge","Vladimir Guerrero Jr.","Fernando Tatis Jr.","Jonathan Aranda","Francisco Alvarez","Corey Seager","Ronald Acuña Jr.","Adley Rutschman"]},
+  {name:"Anthony Pandolfi",paid:true,players:["Gunnar Henderson","Kyle Tucker","Ronald Acuña Jr.","Roman Anthony","Ozzie Albies","Austin Riley","Tyler O'Neill","Bobby Witt Jr.","Aaron Judge","Jackson Merrill"]},
+  {name:"Mo Raza",paid:true,players:["Juan Soto","Spencer Steer","Lars Nootbaar","Teoscar Hernández","Dansby Swanson","Bryan Reynolds","Gunnar Henderson","Alec Bohm","Austin Wells","Jacob Wilson"]},
+  {name:"Eric Mastrotto",paid:true,players:["Junior Caminero","Nick Kurtz","Jackson Chourio","Ronald Acuña Jr.","Colson Montgomery","Gunnar Henderson","Nolan Gorman","Coby Mayo","Francisco Alvarez","Roman Anthony"]},
+  {name:"John Rugani",paid:false,players:["Shohei Ohtani","Gunnar Henderson","Vladimir Guerrero Jr.","Bobby Witt Jr.","Elly De La Cruz","Adolis García","Austin Riley","Francisco Alvarez","Ezequiel Tovar","Roman Anthony"]},
+  {name:"PJ Obrien",paid:true,players:["Aaron Judge","Nick Kurtz","Ronald Acuña Jr.","Colson Montgomery","Gunnar Henderson","Austin Riley","Luis Robert Jr.","Francisco Alvarez","Kyle Teel","Roman Anthony"]},
+  {name:"Doherty Bros",paid:true,players:["Aaron Judge","Pete Alonso","Gunnar Henderson","Austin Riley","Roman Anthony","Ronald Acuña Jr.","Ezequiel Tovar","Jackson Merrill","Royce Lewis","Luis Robert Jr."]},
+  {name:"Kevin Hill",paid:false,players:["Pete Alonso","Bobby Witt Jr.","Vladimir Guerrero Jr.","Corey Seager","Ronald Acuña Jr.","Gunnar Henderson","Austin Riley","Luis Robert Jr.","Noelvi Marté","Tyler O'Neill"]},
+  {name:"Joey Demiglio",paid:false,players:["Roman Anthony","Aaron Judge","Austin Riley","Gunnar Henderson","Corey Seager","Nick Kurtz","Tyler O'Neill","Bryce Harper","Ezequiel Tovar","Cam Smith"]},
+  {name:"Bill Murtha",paid:false,players:["Juan Soto","Pete Alonso","Nick Kurtz","Agustín Ramírez","Gunnar Henderson","Noelvi Marté","Francisco Alvarez","Daylen Lile","Kyle Teel","Roman Anthony"]},
+  {name:"Brian Murtha",paid:false,players:["Kyle Schwarber","Pete Alonso","Kyle Tucker","Ronald Acuña Jr.","Gunnar Henderson","Jorge Soler","Alec Bohm","Francisco Alvarez","Adley Rutschman","Roman Anthony"]},
+];
+
+const ALL_PLAYERS = [...new Set(POOL.flatMap(e => e.players))].sort();
+let hrMap = {};
+let lastFetch = null;
+
+// Normalize player names for fuzzy matching against MLB API names
+function normalize(s) {
+  return s.toLowerCase()
+    .replace(/[áàâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i')
+    .replace(/[óòôö]/g,'o').replace(/[úùûü]/g,'u').replace(/[ñ]/g,'n')
+    .replace(/[^a-z0-9 .]/g,'').trim();
+}
+
+function matchHR(playerName, apiMap) {
+  // exact match first
+  if (apiMap[playerName] !== undefined) return apiMap[playerName];
+  // normalized match
+  const norm = normalize(playerName);
+  for (const [k, v] of Object.entries(apiMap)) {
+    if (normalize(k) === norm) return v;
+  }
+  return 0;
+}
+
+async function loadStats() {
+  setErr('');
+  setBadge('loading');
+  document.getElementById('refresh-btn').disabled = true;
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('obar').style.width = '10%';
+  document.getElementById('ostatus').textContent = 'Fetching from MLB Stats API...';
+
+  try {
+    const res = await fetch('/.netlify/functions/mlb');
+    document.getElementById('obar').style.width = '70%';
+    document.getElementById('ostatus').textContent = 'Processing stats...';
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || `Server error ${res.status}`);
+    }
+
+    const apiMap = await res.json();
+
+    if (Object.keys(apiMap).length === 0) {
+      throw new Error('MLB API returned no data — the 2026 season stats may not be available yet today. Try again later.');
+    }
+
+    // Map pool players to HR counts
+    const newHR = {};
+    for (const p of ALL_PLAYERS) {
+      newHR[p] = matchHR(p, apiMap);
+    }
+
+    hrMap = newHR;
+    lastFetch = new Date();
+    document.getElementById('obar').style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('overlay').classList.add('hidden');
+      setBadge('live');
+      render();
+    }, 300);
+
+  } catch(e) {
+    document.getElementById('overlay').classList.add('hidden');
+    setBadge('error');
+    setErr('Error: ' + e.message);
+    if (Object.keys(hrMap).length > 0) render();
+  } finally {
+    document.getElementById('refresh-btn').disabled = false;
+  }
+}
+
+function setBadge(s) {
+  const el = document.getElementById('badge');
+  const map = {
+    idle: ['badge-idle','Not loaded'],
+    loading: ['badge-loading','Fetching...'],
+    live: ['badge-live','<span class="dot"></span> Live'],
+    error: ['badge-error','Error'],
+  };
+  const [c,h] = map[s];
+  el.className = 'badge ' + c;
+  el.innerHTML = h;
+}
+
+function setErr(msg) {
+  const el = document.getElementById('err');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function scoreEntry(e) {
+  const list = e.players.map(p => ({name:p, hr:hrMap[p]||0})).sort((a,b)=>b.hr-a.hr);
+  return {top8:list.slice(0,8), bench:list.slice(8), total:list.slice(0,8).reduce((s,p)=>s+p.hr,0)};
+}
+
+function render() {
+  const scored = POOL.map(e => ({...e,...scoreEntry(e)})).sort((a,b)=>b.total-a.total);
+  const max = scored[0]?.total || 1;
+
+  // summary cards
+  document.getElementById('s-score').textContent = scored[0]?.total ?? '—';
+  document.getElementById('s-name').textContent = scored[0]?.name ?? '—';
+  let topName='—', topHR=0;
+  for (const [k,v] of Object.entries(hrMap)) if(v>topHR){topHR=v;topName=k;}
+  document.getElementById('s-hr').textContent = topHR || '—';
+  document.getElementById('s-player').textContent = topName;
+  if (lastFetch) document.getElementById('last-upd').textContent =
+    'Updated ' + lastFetch.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  // standings table
+  let html = '';
+  scored.forEach((e,i) => {
+    const r = i+1;
+    const rc = r===1?'gold':r===2?'silver':r===3?'bronze':'dim';
+    const rowc = r===1?'r1':r===2?'r2':r===3?'r3':'';
+    const pct = Math.round(e.total/max*100);
+    const prev = e.top8.slice(0,3).map(p=>`<span class="hl">${p.name.split(' ').pop()} ${p.hr}</span>`).join(', ');
+    html += `
+    <tr class="${rowc}" onclick="expand(${i})">
+      <td><span class="rank ${rc}">${r}</span></td>
+      <td><div class="pname">${e.name}</div></td>
+      <td class="score">${e.total}</td>
+      <td class="bar-cell"><div class="bar-bg"><div class="bar-fill${r===1?' g':''}" style="width:${pct}%"></div></div></td>
+      <td class="preview">${prev}</td>
+    </tr>
+    <tr class="exp-row" id="exp-${i}">
+      <td colspan="5"><div class="exp-inner">
+        <div class="exp-label">Full roster — blue counts toward score (top 8 HRs)</div>
+        <div class="chips">
+          ${e.top8.map(p=>`<div class="chip on"><span class="chip-name">${p.name}</span><span><span class="chip-hr">${p.hr}</span></span></div>`).join('')}
+          ${e.bench.map(p=>`<div class="chip"><span class="chip-name">${p.name}</span><span><span class="chip-hr">${p.hr}</span><span class="chip-tag tag-off">bench</span></span></div>`).join('')}
+        </div>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('tbody').innerHTML = html;
+
+  // players tab
+  const ps = ALL_PLAYERS.map(p=>({name:p,hr:hrMap[p]||0,own:POOL.filter(e=>e.players.includes(p)).length})).sort((a,b)=>b.hr-a.hr);
+  document.getElementById('pgrid').innerHTML = ps.map(p=>`
+    <div class="pcard">
+      <div><div class="pcard-name">${p.name}</div><div class="pcard-own">${p.own} owner${p.own!==1?'s':''}</div></div>
+      <div class="pcard-hr">${p.hr}</div>
+    </div>`).join('');
+}
+
+function expand(i) {
+  const row = document.getElementById('exp-'+i);
+  const was = row.classList.contains('open');
+  document.querySelectorAll('.exp-row.open').forEach(r=>r.classList.remove('open'));
+  if (!was) row.classList.add('open');
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['standings','players'][i]===t));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+}
+
+// Auto-load on page open
+loadStats();
+
+// Auto-refresh every 10 minutes
+setInterval(loadStats, 12 * 60 * 60 * 1000);
+</script>
+</body>
+</html>
