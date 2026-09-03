@@ -1,10 +1,4 @@
 export default async function handler(req, res) {
-  const urls = [
-    'https://statsapi.mlb.com/api/v1/stats/leaders?leaderCategories=homeRuns&season=2026&sportId=1&limit=1000&statGroup=hitting',
-    'https://statsapi.mlb.com/api/v1/stats/leaders?leaderCategories=homeRuns&season=2026&sportId=1&limit=1000',
-    'https://statsapi.mlb.com/api/v1/stats/leaders?leaderCategories=homeRuns&sportId=1&limit=1000',
-  ];
-
   const POOL_PLAYERS = [
     "Pete Alonso","Elly De La Cruz","Roman Anthony","Corey Seager","Vladimir Guerrero Jr.",
     "Fernando Tatis Jr.","Bobby Witt Jr.","Jake Burger","Jorge Soler","Gunnar Henderson",
@@ -23,29 +17,65 @@ export default async function handler(req, res) {
     "Jacob Wilson","Junior Caminero","Royce Lewis","Bryce Harper","Agustín Ramírez","Kyle Teel"
   ];
 
+  function normalize(s) {
+    return s.toLowerCase()
+      .replace(/[áàâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i')
+      .replace(/[óòôö]/g,'o').replace(/[úùûü]/g,'u').replace(/[ñ]/g,'n')
+      .replace(/[^a-z0-9 .]/g,'').trim();
+  }
+
   const hrMap = {};
-  let lastError = '';
 
   try {
-    // Step 1: bulk leaderboard
+    // Use the totals endpoint which gives season totals consolidated across teams
+    const urls = [
+      'https://statsapi.mlb.com/api/v1/stats/leaders?leaderCategories=homeRuns&season=2026&sportId=1&limit=1000&statGroup=hitting',
+      'https://statsapi.mlb.com/api/v1/stats/leaders?leaderCategories=homeRuns&season=2026&sportId=1&limit=1000',
+    ];
+
+    // Build a map of personId -> max HR value to deduplicate traded players
+    const idToHR = {};
+    const idToName = {};
+
     for (const url of urls) {
       try {
         const response = await fetch(url, {
           headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
         });
-        if (!response.ok) { lastError = `HTTP ${response.status}`; continue; }
+        if (!response.ok) continue;
         const data = await response.json();
         const leaders = data.leagueLeaders?.[0]?.leaders || [];
-        if (leaders.length === 0) { lastError = 'No leaders returned'; continue; }
+        if (leaders.length === 0) continue;
+
         for (const l of leaders) {
-          if (l.person?.fullName) hrMap[l.person.fullName] = parseInt(l.value) || 0;
+          const name = l.person?.fullName;
+          const id = l.person?.id;
+          const hr = parseInt(l.value) || 0;
+          if (!name || !id) continue;
+
+          // Keep the highest HR count per player ID (handles traded players appearing twice)
+          if (idToHR[id] === undefined || hr > idToHR[id]) {
+            idToHR[id] = hr;
+            idToName[id] = name;
+          }
         }
-        break; // success
-      } catch(e) { lastError = e.message; continue; }
+        break;
+      } catch(e) { continue; }
     }
 
-    // Step 2: individual lookups for pool players not in leaderboard
-    const notFound = POOL_PLAYERS.filter(name => hrMap[name] === undefined);
+    // Map deduplicated results to hrMap by name
+    for (const [id, hr] of Object.entries(idToHR)) {
+      hrMap[idToName[id]] = hr;
+    }
+
+    // Individual lookups for pool players not in leaderboard (0 HRs)
+    const notFound = POOL_PLAYERS.filter(name => {
+      if (hrMap[name] !== undefined) return false;
+      // also check normalized name match
+      const norm = normalize(name);
+      return !Object.keys(hrMap).some(k => normalize(k) === norm);
+    });
+
     for (const name of notFound) {
       try {
         const searchRes = await fetch(
@@ -57,23 +87,32 @@ export default async function handler(req, res) {
         const person = searchData.people?.[0];
         if (!person?.id) { hrMap[name] = 0; continue; }
 
+        // Use statsSingleSeason which gives one consolidated total row
         const statsRes = await fetch(
-          `https://statsapi.mlb.com/api/v1/people/${person.id}/stats?stats=season&season=2026&group=hitting`,
+          `https://statsapi.mlb.com/api/v1/people/${person.id}/stats?stats=statsSingleSeason&season=2026&group=hitting`,
           { headers: { 'User-Agent': 'Mozilla/5.0' } }
         );
         if (!statsRes.ok) { hrMap[name] = 0; continue; }
         const statsData = await statsRes.json();
-        const splits = statsData.stats?.[0]?.splits || [];
-        hrMap[name] = splits.reduce((sum, s) => sum + (s.stat?.homeRuns || 0), 0);
+        // statsSingleSeason returns one row with full season total
+        const hr = statsData.stats?.[0]?.splits?.[0]?.stat?.homeRuns || 0;
+        hrMap[name] = hr;
       } catch(e) { hrMap[name] = 0; }
     }
 
-    // Set 0 for any remaining
-    for (const name of POOL_PLAYERS) {
-      if (hrMap[name] === undefined) hrMap[name] = 0;
+    // Normalize pool player names against hrMap for accented chars
+    const finalMap = {};
+    for (const player of POOL_PLAYERS) {
+      if (hrMap[player] !== undefined) {
+        finalMap[player] = hrMap[player];
+        continue;
+      }
+      const norm = normalize(player);
+      const match = Object.keys(hrMap).find(k => normalize(k) === norm);
+      finalMap[player] = match ? hrMap[match] : 0;
     }
 
-    res.status(200).json(hrMap);
+    res.status(200).json(finalMap);
   } catch(err) {
     res.status(500).json({ error: err.message });
   }
